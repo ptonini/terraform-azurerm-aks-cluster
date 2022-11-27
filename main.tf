@@ -18,6 +18,18 @@ locals {
   default_pool_index = index(local.node_pools.*.default, true)
 }
 
+module "service_principal" {
+  source = "github.com/ptonini/terraform-azuread-service-principal?ref=v1"
+  count = var.service_principal == null ? 1 : 0
+  name = var.name
+  homepage_url = "https://${var.name}"
+  create_password = true
+  roles = merge(
+    var.vnet_id != null ? {vnet = {definition_name = "Reader", scope = var.vnet_id}} : {},
+    {for id in local.subnet_ids : id => {definition_name = "Network Contributor", scope = id}}
+  )
+}
+
 resource "azurerm_kubernetes_cluster" "this" {
   name = var.name
   location = var.rg.location
@@ -33,8 +45,8 @@ resource "azurerm_kubernetes_cluster" "this" {
     admin_group_object_ids = var.aad_role_based_access_control_admin_group_object_ids
   }
   service_principal {
-    client_id = var.service_principal.client_id
-    client_secret = var.service_principal.client_secret
+    client_id = var.service_principal == null ? module.service_principal[0].application.application_id : var.service_principal.client_id
+    client_secret = var.service_principal == null ? module.service_principal[0].password : var.service_principal.client_secret
   }
   network_profile {
     outbound_type = var.network_outbound_type
