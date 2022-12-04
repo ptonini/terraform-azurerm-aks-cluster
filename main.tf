@@ -8,7 +8,6 @@ locals {
     max_count = try(v["max_count"], var.default_node_pool_max_count)
     vm_size = try(v["vm_size"], var.default_node_pool_vm_size)
     vnet_subnet_id = try(v["subnet_id"], var.default_node_pool_subnet_id)
-#    scale_down_mode = try(v["scale_down_mode"], var.default_node_scale_down_mode)
     orchestrator_version = try(v["orchestrator_version"], var.kubernetes_version)
     class = try(v["class"], var.default_node_pool_class)
     linux_os_config = try(v["linux_os_config"], [])
@@ -19,7 +18,8 @@ locals {
 }
 
 module "service_principal" {
-  source = "github.com/ptonini/terraform-azuread-service-principal?ref=v1"
+  source = "ptonini/service-principal/azuread"
+  version = "~> 1.0.0"
   count = var.service_principal == null ? 1 : 0
   name = var.name
   homepage_url = "https://${var.name}"
