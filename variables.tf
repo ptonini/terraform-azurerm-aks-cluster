@@ -3,19 +3,19 @@ variable "name" {}
 variable "service_principal" {
   default = null
   type = object({
-    client_id = string
+    client_id     = string
     client_secret = string
   })
 }
 
 variable "rg" {
   type = object({
-    name = string
+    name     = string
     location = string
   })
 }
 
-variable vnet_id {
+variable "vnet_id" {
   default = null
 }
 
@@ -39,7 +39,7 @@ variable "api_server_authorized_ip_ranges" {
 
 variable "role_based_access_control_enabled" {
   default = true
-  type = bool
+  type    = bool
 }
 
 variable "aad_role_based_access_control_managed" {
@@ -49,6 +49,7 @@ variable "aad_role_based_access_control_managed" {
 variable "aad_role_based_access_control_admin_group_object_ids" {
   default = []
 }
+
 
 # Network profile #############################################################
 
@@ -76,10 +77,11 @@ variable "network_outbound_type" {
   default = "loadBalancer"
 }
 
+
 # Nodes #######################################################################
 
 variable "node_admin_username" {
-  type = string
+  type    = string
   default = "node-admin"
 }
 
@@ -90,6 +92,7 @@ variable "node_admin_ssh_key" {
 variable "node_pools" {
   default = {}
 }
+
 
 # Default node pool ###########################################################
 
