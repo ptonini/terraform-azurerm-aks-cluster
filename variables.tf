@@ -33,10 +33,6 @@ variable "private_cluster_public_fqdn_enabled" {
   default = true
 }
 
-variable "api_server_authorized_ip_ranges" {
-  default = null
-}
-
 variable "role_based_access_control_enabled" {
   default = true
   type    = bool
@@ -130,8 +126,4 @@ variable "default_node_pool_subnet_id" {
 
 variable "default_node_pool_node_taints" {
   default = null
-}
-
-variable "default_node_scale_down_mode" {
-  default = "Deallocate"
 }

@@ -25,7 +25,6 @@ resource "azurerm_kubernetes_cluster" "this" {
   kubernetes_version                  = var.kubernetes_version
   private_cluster_enabled             = var.private_cluster_enabled
   private_cluster_public_fqdn_enabled = var.private_cluster_public_fqdn_enabled
-  api_server_authorized_ip_ranges     = var.api_server_authorized_ip_ranges
   role_based_access_control_enabled   = var.role_based_access_control_enabled
   azure_active_directory_role_based_access_control {
     managed                = var.aad_role_based_access_control_managed
@@ -50,14 +49,13 @@ resource "azurerm_kubernetes_cluster" "this" {
     }
   }
   default_node_pool {
-    name                = local.node_pools[local.default_pool_index]["name"]
-    enable_auto_scaling = local.node_pools[local.default_pool_index]["enable_auto_scaling"]
-    node_count          = local.node_pools[local.default_pool_index]["node_count"]
-    min_count           = local.node_pools[local.default_pool_index]["enable_auto_scaling"] ? local.node_pools[local.default_pool_index]["min_count"] : null
-    max_count           = local.node_pools[local.default_pool_index]["enable_auto_scaling"] ? local.node_pools[local.default_pool_index]["max_count"] : null
-    vm_size             = local.node_pools[local.default_pool_index]["vm_size"]
-    vnet_subnet_id      = local.node_pools[local.default_pool_index]["vnet_subnet_id"]
-    #    scale_down_mode = local.node_pools[local.default_pool_index]["scale_down_mode"]
+    name                 = local.node_pools[local.default_pool_index]["name"]
+    enable_auto_scaling  = local.node_pools[local.default_pool_index]["enable_auto_scaling"]
+    node_count           = local.node_pools[local.default_pool_index]["node_count"]
+    min_count            = local.node_pools[local.default_pool_index]["enable_auto_scaling"] ? local.node_pools[local.default_pool_index]["min_count"] : null
+    max_count            = local.node_pools[local.default_pool_index]["enable_auto_scaling"] ? local.node_pools[local.default_pool_index]["max_count"] : null
+    vm_size              = local.node_pools[local.default_pool_index]["vm_size"]
+    vnet_subnet_id       = local.node_pools[local.default_pool_index]["vnet_subnet_id"]
     orchestrator_version = local.node_pools[local.default_pool_index]["orchestrator_version"]
     node_taints          = local.node_pools[local.default_pool_index]["node_taints"]
     node_labels = {
@@ -94,8 +92,7 @@ resource "azurerm_kubernetes_cluster_node_pool" "this" {
   max_count             = each.value["enable_auto_scaling"] ? each.value["max_count"] : null
   vm_size               = each.value["vm_size"]
   orchestrator_version  = each.value["orchestrator_version"]
-  #  scale_down_mode = each.value["scale_down_mode"]
-  node_taints = each.value["node_taints"]
+  node_taints           = each.value["node_taints"]
   node_labels = {
     nodePoolName  = each.value["name"]
     nodePoolClass = each.value["class"]
