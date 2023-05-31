@@ -76,7 +76,8 @@ resource "azurerm_kubernetes_cluster" "this" {
   }
   lifecycle {
     ignore_changes = [
-      network_profile
+      network_profile,
+      tags
     ]
   }
 }
