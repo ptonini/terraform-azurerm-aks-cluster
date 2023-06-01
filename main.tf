@@ -40,7 +40,6 @@ resource "azurerm_kubernetes_cluster" "this" {
     pod_cidr           = var.pod_cidr
     service_cidr       = var.service_cidr
     dns_service_ip     = var.dns_service_ip
-    docker_bridge_cidr = var.docker_bridge_cidr
   }
   linux_profile {
     admin_username = var.node_admin_username

@@ -65,10 +65,6 @@ variable "dns_service_ip" {
   default = "172.16.0.10"
 }
 
-variable "docker_bridge_cidr" {
-  default = "172.17.0.1/16"
-}
-
 variable "network_outbound_type" {
   default = "loadBalancer"
 }
