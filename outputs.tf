@@ -3,7 +3,7 @@ output "this" {
 }
 
 output "credentials" {
-  value = {
+  value = var.local_account_disabled ? null : {
     host                   = "https://${azurerm_kubernetes_cluster.this.fqdn}:443"
     username               = azurerm_kubernetes_cluster.this.kube_admin_config.0.username
     password               = azurerm_kubernetes_cluster.this.kube_admin_config.0.password

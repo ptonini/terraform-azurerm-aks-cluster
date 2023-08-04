@@ -1,4 +1,6 @@
-variable "name" {}
+variable "name" {
+  type = string
+}
 
 variable "service_principal" {
   default = null
@@ -19,10 +21,25 @@ variable "vnet_id" {
   default = null
 }
 
+variable "node_resource_group" {
+  default = null
+}
+
 variable "kubernetes_version" {}
 
 variable "automatic_channel_upgrade" {
   default = "stable"
+}
+
+
+# Control plane api access ####################################################
+
+variable "private_dns_zone_id" {
+  default = "None"
+}
+
+variable "dns_prefix" {
+  default = null
 }
 
 variable "private_cluster_enabled" {
@@ -33,16 +50,26 @@ variable "private_cluster_public_fqdn_enabled" {
   default = true
 }
 
+
+# RBAC and authentication #####################################################
+
 variable "role_based_access_control_enabled" {
   default = true
-  type    = bool
 }
 
-variable "aad_role_based_access_control_managed" {
+variable "local_account_disabled" {
   default = true
 }
 
-variable "aad_role_based_access_control_admin_group_object_ids" {
+variable "aad_rbac_managed" {
+  default = true
+}
+
+variable "aad_rbac_azure_rbac_enabled" {
+  default = true
+}
+
+variable "aad_rbac_admin_group_object_ids" {
   default = []
 }
 
@@ -58,11 +85,11 @@ variable "pod_cidr" {
 }
 
 variable "service_cidr" {
-  default = "172.16.0.0/16"
+  default = "172.20.0.0/16"
 }
 
 variable "dns_service_ip" {
-  default = "172.16.0.10"
+  default = "172.20.0.10"
 }
 
 variable "network_outbound_type" {
@@ -70,7 +97,7 @@ variable "network_outbound_type" {
 }
 
 
-# Nodes #######################################################################
+# Node pools ##################################################################
 
 variable "node_admin_username" {
   type    = string
@@ -86,7 +113,7 @@ variable "node_pools" {
 }
 
 
-# Default node pool ###########################################################
+# Default node pool settings ##################################################
 
 variable "default_node_pool_name" {
   default = "pool0001"
@@ -109,7 +136,7 @@ variable "default_node_pool_max_count" {
 }
 
 variable "default_node_pool_vm_size" {
-  default = "standard_ds2_v2"
+  default = "standard_b2ms"
 }
 
 variable "default_node_pool_enable_auto_scaling" {

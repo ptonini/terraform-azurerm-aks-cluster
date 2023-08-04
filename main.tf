@@ -21,25 +21,29 @@ resource "azurerm_kubernetes_cluster" "this" {
   name                                = var.name
   location                            = var.rg.location
   resource_group_name                 = var.rg.name
-  dns_prefix                          = var.name
+  dns_prefix                          = coalesce(var.dns_prefix, substr(var.name, 0, 42))
   kubernetes_version                  = var.kubernetes_version
+  node_resource_group                 = var.node_resource_group
   private_cluster_enabled             = var.private_cluster_enabled
   private_cluster_public_fqdn_enabled = var.private_cluster_public_fqdn_enabled
+  private_dns_zone_id                 = var.private_dns_zone_id
   role_based_access_control_enabled   = var.role_based_access_control_enabled
+  local_account_disabled              = var.local_account_disabled
   azure_active_directory_role_based_access_control {
-    managed                = var.aad_role_based_access_control_managed
-    admin_group_object_ids = var.aad_role_based_access_control_admin_group_object_ids
+    managed                = var.aad_rbac_managed
+    admin_group_object_ids = var.aad_rbac_admin_group_object_ids
+    azure_rbac_enabled     = var.aad_rbac_azure_rbac_enabled
   }
   service_principal {
     client_id     = var.service_principal.client_id
     client_secret = var.service_principal.client_secret
   }
   network_profile {
-    outbound_type      = var.network_outbound_type
-    network_plugin     = var.network_plugin
-    pod_cidr           = var.pod_cidr
-    service_cidr       = var.service_cidr
-    dns_service_ip     = var.dns_service_ip
+    outbound_type  = var.network_outbound_type
+    network_plugin = var.network_plugin
+    pod_cidr       = var.pod_cidr
+    service_cidr   = var.service_cidr
+    dns_service_ip = var.dns_service_ip
   }
   linux_profile {
     admin_username = var.node_admin_username
@@ -61,6 +65,7 @@ resource "azurerm_kubernetes_cluster" "this" {
       nodePoolName  = local.node_pools[local.default_pool_index]["name"]
       nodePoolClass = local.node_pools[local.default_pool_index]["class"]
     }
+    temporary_name_for_rotation = "temp"
     dynamic "linux_os_config" {
       for_each = local.node_pools[local.default_pool_index]["linux_os_config"]
       content {
