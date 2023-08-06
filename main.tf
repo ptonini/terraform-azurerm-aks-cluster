@@ -1,20 +1,6 @@
 locals {
-  node_pools = [for k, v in var.node_pools : {
-    name                 = k
-    default              = try(v["default"], length(var.node_pools) == 1 ? true : false)
-    enable_auto_scaling  = try(v["enable_auto_scaling"], var.default_node_pool_enable_auto_scaling)
-    node_count           = try(v["node_count"], var.default_node_pool_node_count)
-    min_count            = try(v["min_count"], var.default_node_pool_min_count)
-    max_count            = try(v["max_count"], var.default_node_pool_max_count)
-    vm_size              = try(v["vm_size"], var.default_node_pool_vm_size)
-    vnet_subnet_id       = try(v["subnet_id"], var.default_node_pool_subnet_id)
-    orchestrator_version = try(v["orchestrator_version"], var.kubernetes_version)
-    class                = try(v["class"], var.default_node_pool_class)
-    linux_os_config      = try(v["linux_os_config"], [])
-    node_taints          = try(v["node_taints"], var.default_node_pool_node_taints)
-  }]
-  subnet_ids         = distinct([for pool in local.node_pools : pool["vnet_subnet_id"]])
-  default_pool_index = index(local.node_pools.*.default, true)
+  subnet_ids   = toset([for k, v in var.node_pools : v["vnet_subnet_id"]])
+  default_pool = [for k, v in var.node_pools : k if v["default"] == true][0]
 }
 
 resource "azurerm_kubernetes_cluster" "this" {
@@ -52,27 +38,27 @@ resource "azurerm_kubernetes_cluster" "this" {
     }
   }
   default_node_pool {
-    name                 = local.node_pools[local.default_pool_index]["name"]
-    enable_auto_scaling  = local.node_pools[local.default_pool_index]["enable_auto_scaling"]
-    node_count           = local.node_pools[local.default_pool_index]["node_count"]
-    min_count            = local.node_pools[local.default_pool_index]["enable_auto_scaling"] ? local.node_pools[local.default_pool_index]["min_count"] : null
-    max_count            = local.node_pools[local.default_pool_index]["enable_auto_scaling"] ? local.node_pools[local.default_pool_index]["max_count"] : null
-    vm_size              = local.node_pools[local.default_pool_index]["vm_size"]
-    vnet_subnet_id       = local.node_pools[local.default_pool_index]["vnet_subnet_id"]
-    orchestrator_version = local.node_pools[local.default_pool_index]["orchestrator_version"]
-    node_taints          = local.node_pools[local.default_pool_index]["node_taints"]
+    name                 = local.default_pool
+    vnet_subnet_id       = coalesce(var.node_pools[local.default_pool].vnet_subnet_id, var.default_node_pool_subnet_id)
+    enable_auto_scaling  = var.node_pools[local.default_pool].enable_auto_scaling
+    node_count           = var.node_pools[local.default_pool].node_count
+    min_count            = var.node_pools[local.default_pool].enable_auto_scaling ? var.node_pools[local.default_pool].min_count : null
+    max_count            = var.node_pools[local.default_pool].enable_auto_scaling ? var.node_pools[local.default_pool].max_count : null
+    vm_size              = var.node_pools[local.default_pool].vm_size
+    orchestrator_version = var.node_pools[local.default_pool].orchestrator_version
+    node_taints          = var.node_pools[local.default_pool].node_taints
     node_labels = {
-      nodePoolName  = local.node_pools[local.default_pool_index]["name"]
-      nodePoolClass = local.node_pools[local.default_pool_index]["class"]
+      nodePoolName  = local.default_pool
+      nodePoolClass = var.node_pools[local.default_pool].class
     }
-    temporary_name_for_rotation = "temp"
+    temporary_name_for_rotation = var.default_node_pool_temporary_name_for_rotation
     dynamic "linux_os_config" {
-      for_each = local.node_pools[local.default_pool_index]["linux_os_config"]
+      for_each = var.node_pools[local.default_pool].linux_os_config == null ? {} : { 1 = var.node_pools[local.default_pool].linux_os_config }
       content {
         dynamic "sysctl_config" {
-          for_each = try(linux_os_config.value["sysctl_config"], {})
+          for_each = linux_os_config.value["sysctl_config"] == null ? {} : { 1 = linux_os_config.value["sysctl_config"] }
           content {
-            vm_max_map_count = try(sysctl_config.value.vm_max_map_count, null)
+            vm_max_map_count = sysctl_config.value["vm_max_map_count"]
           }
         }
       }
@@ -87,28 +73,28 @@ resource "azurerm_kubernetes_cluster" "this" {
 }
 
 resource "azurerm_kubernetes_cluster_node_pool" "this" {
-  for_each              = { for i, v in local.node_pools : v["name"] => v if i != local.default_pool_index }
-  name                  = each.value["name"]
+  for_each              = { for k, v in var.node_pools : k => v if k != local.default_pool }
   kubernetes_cluster_id = azurerm_kubernetes_cluster.this.id
-  vnet_subnet_id        = each.value["vnet_subnet_id"]
-  node_count            = each.value["node_count"]
-  enable_auto_scaling   = each.value["enable_auto_scaling"]
-  min_count             = each.value["enable_auto_scaling"] ? each.value["min_count"] : null
-  max_count             = each.value["enable_auto_scaling"] ? each.value["max_count"] : null
-  vm_size               = each.value["vm_size"]
-  orchestrator_version  = each.value["orchestrator_version"]
-  node_taints           = each.value["node_taints"]
+  name                  = each.key
+  vnet_subnet_id        = coalesce(each.value.vnet_subnet_id, var.default_node_pool_subnet_id)
+  node_count            = each.value.node_count
+  enable_auto_scaling   = each.value.enable_auto_scaling
+  min_count             = each.value.enable_auto_scaling ? each.value.min_count : null
+  max_count             = each.value.enable_auto_scaling ? each.value.max_count : null
+  vm_size               = each.value.vm_size
+  orchestrator_version  = each.value.orchestrator_version
+  node_taints           = each.value.node_taints
   node_labels = {
-    nodePoolName  = each.value["name"]
-    nodePoolClass = each.value["class"]
+    nodePoolName  = each.key
+    nodePoolClass = each.value.class
   }
   dynamic "linux_os_config" {
-    for_each = each.value["linux_os_config"]
+    for_each = each.value.linux_os_config == null ? {} : { 1 = each.value.linux_os_config }
     content {
       dynamic "sysctl_config" {
-        for_each = try(linux_os_config.value["sysctl_config"], [])
+        for_each = linux_os_config.value["sysctl_config"] == null ? {} : { 1 = linux_os_config.value["sysctl_config"] }
         content {
-          vm_max_map_count = try(sysctl_config.value.vm_max_map_count, null)
+          vm_max_map_count = sysctl_config.value["vm_max_map_count"]
         }
       }
     }

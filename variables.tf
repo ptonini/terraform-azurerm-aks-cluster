@@ -109,44 +109,35 @@ variable "node_admin_ssh_key" {
 }
 
 variable "node_pools" {
+  type = map(object({
+    default              = optional(bool, false)
+    enable_auto_scaling  = optional(bool, true)
+    node_count           = optional(number)
+    min_count            = optional(number, 1)
+    max_count            = optional(number)
+    vm_size              = optional(string, "standard_b2ms")
+    vnet_subnet_id       = optional(string)
+    orchestrator_version = optional(string)
+    class                = optional(string, "general")
+    node_taints          = optional(set(string))
+    linux_os_config = optional(object({
+      sysctl_config = optional(object({
+        vm_max_map_count = optional(number)
+      }))
+    }))
+  }))
   default = {}
 }
 
-
-# Default node pool settings ##################################################
-
-variable "default_node_pool_name" {
-  default = "pool0001"
-}
-
-variable "default_node_pool_class" {
-  default = "general"
-}
-
-variable "default_node_pool_node_count" {
-  default = null
-}
-
-variable "default_node_pool_min_count" {
-  default = 1
-}
-
-variable "default_node_pool_max_count" {
-  default = null
-}
-
-variable "default_node_pool_vm_size" {
-  default = "standard_b2ms"
-}
-
-variable "default_node_pool_enable_auto_scaling" {
-  default = true
+variable "default_node_pool_temporary_name_for_rotation" {
+  default = "temp"
 }
 
 variable "default_node_pool_subnet_id" {
   default = null
 }
 
-variable "default_node_pool_node_taints" {
-  default = null
-}
+
+
+
+
