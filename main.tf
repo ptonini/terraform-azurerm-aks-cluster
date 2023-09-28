@@ -1,6 +1,7 @@
 locals {
-  subnet_ids   = toset([for k, v in var.node_pools : v["vnet_subnet_id"]])
-  default_pool = [for k, v in var.node_pools : k if v["default"] == true][0]
+  subnet_ids        = toset([for k, v in var.node_pools : v["vnet_subnet_id"]])
+  default_pool_name = [for k, v in var.node_pools : k if v["default"] == true][0]
+  default_pool      = var.node_pools[local.default_pool_name]
 }
 
 resource "azurerm_kubernetes_cluster" "this" {
@@ -38,22 +39,22 @@ resource "azurerm_kubernetes_cluster" "this" {
     }
   }
   default_node_pool {
-    name                 = local.default_pool
-    vnet_subnet_id       = coalesce(var.node_pools[local.default_pool].vnet_subnet_id, var.default_node_pool_subnet_id)
-    enable_auto_scaling  = var.node_pools[local.default_pool].enable_auto_scaling
-    node_count           = var.node_pools[local.default_pool].node_count
-    min_count            = var.node_pools[local.default_pool].enable_auto_scaling ? var.node_pools[local.default_pool].min_count : null
-    max_count            = var.node_pools[local.default_pool].enable_auto_scaling ? var.node_pools[local.default_pool].max_count : null
-    vm_size              = var.node_pools[local.default_pool].vm_size
-    orchestrator_version = var.node_pools[local.default_pool].orchestrator_version
-    node_taints          = var.node_pools[local.default_pool].node_taints
+    name                 = local.default_pool_name
+    vnet_subnet_id       = coalesce(local.default_pool["vnet_subnet_id"], var.default_node_pool_subnet_id)
+    enable_auto_scaling  = local.default_pool["enable_auto_scaling"]
+    node_count           = local.default_pool["node_count"]
+    min_count            = local.default_pool["enable_auto_scaling"] ? local.default_pool["min_count"] : null
+    max_count            = local.default_pool["enable_auto_scaling"] ? local.default_pool["max_count"] : null
+    vm_size              = local.default_pool["vm_size"]
+    orchestrator_version = local.default_pool["orchestrator_version"]
+    node_taints          = local.default_pool["node_taints"]
     node_labels = {
-      nodePoolName  = local.default_pool
-      nodePoolClass = var.node_pools[local.default_pool].class
+      nodePoolName  = local.default_pool_name
+      nodePoolClass = local.default_pool["class"]
     }
     temporary_name_for_rotation = var.default_node_pool_temporary_name_for_rotation
     dynamic "linux_os_config" {
-      for_each = var.node_pools[local.default_pool].linux_os_config == null ? {} : { 1 = var.node_pools[local.default_pool].linux_os_config }
+      for_each = local.default_pool["linux_os_config"] == null ? {} : { 1 = local.default_pool["linux_os_config"] }
       content {
         dynamic "sysctl_config" {
           for_each = linux_os_config.value["sysctl_config"] == null ? {} : { 1 = linux_os_config.value["sysctl_config"] }
@@ -73,7 +74,7 @@ resource "azurerm_kubernetes_cluster" "this" {
 }
 
 resource "azurerm_kubernetes_cluster_node_pool" "this" {
-  for_each              = { for k, v in var.node_pools : k => v if k != local.default_pool }
+  for_each              = { for k, v in var.node_pools : k => v if k != local.default_pool_name }
   kubernetes_cluster_id = azurerm_kubernetes_cluster.this.id
   name                  = each.key
   vnet_subnet_id        = coalesce(each.value.vnet_subnet_id, var.default_node_pool_subnet_id)
