@@ -10,10 +10,19 @@ variable "service_principal" {
   })
 }
 
+variable "identity" {
+  type = object({
+    type         = optional(string, "SystemAssigned")
+    identity_ids = optional(set(string), [])
+  })
+  default = {}
+}
+
 variable "rg" {
   type = object({
     name     = string
     location = string
+    id       = string
   })
 }
 
@@ -31,6 +40,40 @@ variable "automatic_channel_upgrade" {
   default = "stable"
 }
 
+variable "oidc_issuer_enabled" {
+  default = true
+}
+
+variable "workload_identity_enabled" {
+  default = true
+}
+
+variable "key_vault_secrets_provider" {
+  default = false
+}
+
+variable "key_vault_secret_rotation_enabled" {
+  default = true
+}
+
+variable "key_vault_secret_rotation_interval" {
+  default = null
+}
+
+variable "keda_enabled" {
+  default = false
+}
+
+variable "identities" {
+  type = map(object({
+    namespace = string
+    scopes = optional(map(object({
+      scope     = string
+      role_name = string
+    })), {})
+  }))
+  default = {}
+}
 
 # Control plane api access ####################################################
 
@@ -101,7 +144,7 @@ variable "network_outbound_type" {
 
 variable "node_admin_username" {
   type    = string
-  default = "node-admin"
+  default = "kube-admin"
 }
 
 variable "node_admin_ssh_key" {
@@ -133,11 +176,4 @@ variable "default_node_pool_temporary_name_for_rotation" {
   default = "temp"
 }
 
-variable "default_node_pool_subnet_id" {
-  default = null
-}
-
-
-
-
-
+variable "default_node_pool_subnet_id" {}
