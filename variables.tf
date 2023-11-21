@@ -45,7 +45,7 @@ variable "identity" {
     type         = optional(string, "SystemAssigned")
     identity_ids = optional(set(string), [])
   })
-  default = null
+  default = {}
 }
 
 variable "key_vault_secrets_provider" {
@@ -53,7 +53,7 @@ variable "key_vault_secrets_provider" {
     secret_rotation_enabled  = optional(bool, true)
     secret_rotation_interval = optional(number)
   })
-  default = null
+  default = {}
 }
 
 variable "network_profile" {
@@ -64,6 +64,7 @@ variable "network_profile" {
     dns_service_ip = optional(string, "172.20.0.10")
     outbound_type  = optional(string, "loadBalancer")
   })
+  default = {}
 }
 
 variable "linux_profile" {

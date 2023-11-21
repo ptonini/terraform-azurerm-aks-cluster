@@ -64,7 +64,7 @@ resource "azurerm_kubernetes_cluster" "this" {
     }
   }
   dynamic "identity" {
-    for_each = var.identity == null ? [] : [0]
+    for_each = var.service_principal == null ? [0] : []
     content {
       type         = var.identity.type
       identity_ids = var.identity.identity_ids
@@ -107,7 +107,7 @@ resource "azurerm_kubernetes_cluster" "this" {
 }
 
 resource "azurerm_role_assignment" "this" {
-  for_each             = var.identity == null ? [] : local.subnet_ids
+  for_each             = length(azurerm_kubernetes_cluster.this.identity) == 1 ? local.subnet_ids : []
   principal_id         = azurerm_kubernetes_cluster.this.identity[0].principal_id
   scope                = each.value
   role_definition_name = "Contributor"
