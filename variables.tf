@@ -120,6 +120,7 @@ variable "aad_rbac" {
     azure_rbac_enabled     = optional(bool, true)
     admin_group_object_ids = optional(set(string))
   })
+  default = {}
 }
 
 # Node pools ##################################################################
