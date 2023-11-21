@@ -13,57 +13,21 @@ resource "azurerm_kubernetes_cluster" "this" {
   private_cluster_enabled             = var.private_cluster_enabled
   private_cluster_public_fqdn_enabled = var.private_cluster_public_fqdn_enabled
   private_dns_zone_id                 = var.private_dns_zone_id
-  role_based_access_control_enabled   = var.role_based_access_control_enabled
-  local_account_disabled              = var.local_account_disabled
   oidc_issuer_enabled                 = var.oidc_issuer_enabled
   workload_identity_enabled           = var.workload_identity_enabled
-  dynamic "service_principal" {
-    for_each = var.service_principal == null ? [] : [0]
-    content {
-      client_id     = var.service_principal.client_id
-      client_secret = var.service_principal.client_secret
-    }
-  }
-  dynamic "identity" {
-    for_each = var.service_principal == null ? [0] : []
-    content {
-      type         = var.identity.type
-      identity_ids = var.identity.identity_ids
-    }
-  }
-  dynamic "key_vault_secrets_provider" {
-    for_each = var.key_vault_secrets_provider ? [0] : []
-    content {
-      secret_rotation_enabled  = var.key_vault_secret_rotation_enabled
-      secret_rotation_interval = var.key_vault_secret_rotation_interval
-    }
-  }
-  dynamic "workload_autoscaler_profile" {
-    for_each = var.keda_enabled ? [0] : []
-    content {
-      keda_enabled                              = var.keda_enabled
-      vertical_pod_autoscaler_controlled_values = var.vertical_pod_autoscaler_controlled_values
-      vertical_pod_autoscaler_enabled           = var.vertical_pod_autoscaler_enabled
-      vertical_pod_autoscaler_update_mode       = var.vertical_pod_autoscaler_update_mode
-    }
-  }
+  role_based_access_control_enabled   = var.role_based_access_control_enabled
+  local_account_disabled              = var.local_account_disabled
   azure_active_directory_role_based_access_control {
-    managed                = var.aad_rbac_managed
-    admin_group_object_ids = var.aad_rbac_admin_group_object_ids
-    azure_rbac_enabled     = var.aad_rbac_azure_rbac_enabled
+    managed                = var.aad_rbac.managed
+    admin_group_object_ids = var.aad_rbac.admin_group_object_ids
+    azure_rbac_enabled     = var.aad_rbac.azure_rbac_enabled
   }
   network_profile {
-    outbound_type  = var.network_outbound_type
-    network_plugin = var.network_plugin
-    pod_cidr       = var.pod_cidr
-    service_cidr   = var.service_cidr
-    dns_service_ip = var.dns_service_ip
-  }
-  linux_profile {
-    admin_username = var.node_admin_username
-    ssh_key {
-      key_data = var.node_admin_ssh_key
-    }
+    outbound_type  = var.network_profile.outbound_type
+    network_plugin = var.network_profile.network_plugin
+    pod_cidr       = var.network_profile.pod_cidr
+    service_cidr   = var.network_profile.service_cidr
+    dns_service_ip = var.network_profile.dns_service_ip
   }
   default_node_pool {
     name                 = local.default_pool
@@ -79,7 +43,7 @@ resource "azurerm_kubernetes_cluster" "this" {
       nodePoolName  = local.default_pool
       nodePoolClass = var.node_pools[local.default_pool].class
     }
-    temporary_name_for_rotation = var.default_node_pool_temporary_name_for_rotation
+    temporary_name_for_rotation = var.node_pools[local.default_pool].temporary_name_for_rotation
     dynamic "linux_os_config" {
       for_each = var.node_pools[local.default_pool].linux_os_config == null ? [] : [0]
       content {
@@ -89,6 +53,45 @@ resource "azurerm_kubernetes_cluster" "this" {
             vm_max_map_count = var.node_pools[local.default_pool].linux_os_config.sysctl_config.vm_max_map_count
           }
         }
+      }
+    }
+  }
+  dynamic "service_principal" {
+    for_each = var.service_principal == null ? [] : [0]
+    content {
+      client_id     = var.service_principal.client_id
+      client_secret = var.service_principal.client_secret
+    }
+  }
+  dynamic "identity" {
+    for_each = var.identity == null ? [] : [0]
+    content {
+      type         = var.identity.type
+      identity_ids = var.identity.identity_ids
+    }
+  }
+  dynamic "key_vault_secrets_provider" {
+    for_each = var.key_vault_secrets_provider == null ? [] : [0]
+    content {
+      secret_rotation_enabled  = var.key_vault_secrets_provider.secret_rotation_enabled
+      secret_rotation_interval = var.key_vault_secrets_provider.secret_rotation_interval
+    }
+  }
+  dynamic "workload_autoscaler_profile" {
+    for_each = var.keda_enabled ? [0] : []
+    content {
+      keda_enabled                              = var.keda_enabled
+      vertical_pod_autoscaler_controlled_values = var.vertical_pod_autoscaler_controlled_values
+      vertical_pod_autoscaler_enabled           = var.vertical_pod_autoscaler_enabled
+      vertical_pod_autoscaler_update_mode       = var.vertical_pod_autoscaler_update_mode
+    }
+  }
+  dynamic "linux_profile" {
+    for_each = var.linux_profile == null ? [] : [0]
+    content {
+      admin_username = var.linux_profile.admin_username
+      ssh_key {
+        key_data = var.linux_profile.ssh_key_data
       }
     }
   }
@@ -104,7 +107,7 @@ resource "azurerm_kubernetes_cluster" "this" {
 }
 
 resource "azurerm_role_assignment" "this" {
-  for_each             = var.service_principal == null ? local.subnet_ids : []
+  for_each             = var.identity == null ? [] : local.subnet_ids
   principal_id         = azurerm_kubernetes_cluster.this.identity[0].principal_id
   scope                = each.value
   role_definition_name = "Contributor"
