@@ -60,9 +60,6 @@ variable "key_vault_secret_rotation_interval" {
   default = null
 }
 
-variable "keda_enabled" {
-  default = false
-}
 
 variable "identities" {
   type = map(object({
@@ -74,6 +71,25 @@ variable "identities" {
   }))
   default = {}
 }
+
+# Workload autoscaler profile #################################################
+
+variable "keda_enabled" {
+  default = false
+}
+
+variable "vertical_pod_autoscaler_controlled_values" {
+  default = "RequestsAndLimits"
+}
+
+variable "vertical_pod_autoscaler_enabled" {
+  default = false
+}
+
+variable "vertical_pod_autoscaler_update_mode" {
+  default = "Off"
+}
+
 
 # Control plane api access ####################################################
 

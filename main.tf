@@ -41,7 +41,10 @@ resource "azurerm_kubernetes_cluster" "this" {
   dynamic "workload_autoscaler_profile" {
     for_each = var.keda_enabled ? [0] : []
     content {
-      keda_enabled = var.keda_enabled
+      keda_enabled                              = var.keda_enabled
+      vertical_pod_autoscaler_controlled_values = var.vertical_pod_autoscaler_controlled_values
+      vertical_pod_autoscaler_enabled           = var.vertical_pod_autoscaler_enabled
+      vertical_pod_autoscaler_update_mode       = var.vertical_pod_autoscaler_update_mode
     }
   }
   azure_active_directory_role_based_access_control {
