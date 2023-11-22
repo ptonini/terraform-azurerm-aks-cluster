@@ -80,8 +80,7 @@ resource "azurerm_kubernetes_cluster" "this" {
   dynamic "workload_autoscaler_profile" {
     for_each = var.keda_enabled ? [0] : []
     content {
-      keda_enabled                    = var.keda_enabled
-      vertical_pod_autoscaler_enabled = var.vertical_pod_autoscaler_enabled
+      keda_enabled = var.keda_enabled
     }
   }
   dynamic "linux_profile" {

@@ -32,6 +32,10 @@ variable "workload_identity_enabled" {
   default = true
 }
 
+variable "keda_enabled" {
+  default = false
+}
+
 variable "service_principal" {
   default = null
   type = object({
@@ -147,14 +151,4 @@ variable "node_pools" {
     temporary_name_for_rotation = optional(string, "temp")
   }))
   default = {}
-}
-
-# Workload autoscaler profile #################################################
-
-variable "keda_enabled" {
-  default = false
-}
-
-variable "vertical_pod_autoscaler_enabled" {
-  default = false
 }
