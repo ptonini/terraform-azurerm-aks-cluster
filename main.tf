@@ -17,11 +17,13 @@ resource "azurerm_kubernetes_cluster" "this" {
   workload_identity_enabled           = var.workload_identity_enabled
   role_based_access_control_enabled   = var.role_based_access_control_enabled
   local_account_disabled              = var.local_account_disabled
+
   azure_active_directory_role_based_access_control {
     managed                = var.aad_rbac.managed
     admin_group_object_ids = var.aad_rbac.admin_group_object_ids
     azure_rbac_enabled     = var.aad_rbac.azure_rbac_enabled
   }
+
   network_profile {
     outbound_type  = var.network_profile.outbound_type
     network_plugin = var.network_profile.network_plugin
@@ -29,6 +31,8 @@ resource "azurerm_kubernetes_cluster" "this" {
     service_cidr   = var.network_profile.service_cidr
     dns_service_ip = var.network_profile.dns_service_ip
   }
+
+
   default_node_pool {
     name                 = local.default_pool
     vnet_subnet_id       = coalesce(var.node_pools[local.default_pool].vnet_subnet_id, var.default_node_pool_subnet_id)
@@ -44,25 +48,29 @@ resource "azurerm_kubernetes_cluster" "this" {
       nodePoolClass = var.node_pools[local.default_pool].class
     }
     temporary_name_for_rotation = var.node_pools[local.default_pool].temporary_name_for_rotation
+
     dynamic "linux_os_config" {
-      for_each = var.node_pools[local.default_pool].linux_os_config == null ? [] : [0]
+      for_each = var.node_pools[local.default_pool].linux_os_config[*]
       content {
+
         dynamic "sysctl_config" {
-          for_each = var.node_pools[local.default_pool].linux_os_config.sysctl_config == null ? [] : [0]
+          for_each = linux_os_config.value.sysctl_config[*]
           content {
-            vm_max_map_count = var.node_pools[local.default_pool].linux_os_config.sysctl_config.vm_max_map_count
+            vm_max_map_count = sysctl_config.value.vm_max_map_count
           }
         }
       }
     }
   }
+
   dynamic "service_principal" {
-    for_each = var.service_principal == null ? [] : [0]
+    for_each = var.service_principal[*]
     content {
-      client_id     = var.service_principal.client_id
-      client_secret = var.service_principal.client_secret
+      client_id     = service_principal.value.client_id
+      client_secret = service_principal.value.client_secret
     }
   }
+
   dynamic "identity" {
     for_each = var.service_principal == null ? [0] : []
     content {
@@ -70,28 +78,32 @@ resource "azurerm_kubernetes_cluster" "this" {
       identity_ids = var.identity.identity_ids
     }
   }
+
   dynamic "key_vault_secrets_provider" {
-    for_each = var.key_vault_secrets_provider == null ? [] : [0]
+    for_each = var.key_vault_secrets_provider[*]
     content {
-      secret_rotation_enabled  = var.key_vault_secrets_provider.secret_rotation_enabled
-      secret_rotation_interval = var.key_vault_secrets_provider.secret_rotation_interval
+      secret_rotation_enabled  = key_vault_secrets_provider.value.secret_rotation_enabled
+      secret_rotation_interval = key_vault_secrets_provider.value.secret_rotation_interval
     }
   }
+
   dynamic "workload_autoscaler_profile" {
     for_each = var.keda_enabled ? [0] : []
     content {
       keda_enabled = var.keda_enabled
     }
   }
+
   dynamic "linux_profile" {
-    for_each = var.linux_profile == null ? [] : [0]
+    for_each = var.linux_profile[*]
     content {
-      admin_username = var.linux_profile.admin_username
+      admin_username = linux_profile.value.admin_username
       ssh_key {
-        key_data = var.linux_profile.ssh_key_data
+        key_data = linux_profile.value.ssh_key_data
       }
     }
   }
+
   lifecycle {
     ignore_changes = [
       network_profile,
@@ -127,13 +139,15 @@ resource "azurerm_kubernetes_cluster_node_pool" "this" {
     nodePoolName  = each.key
     nodePoolClass = each.value.class
   }
+
   dynamic "linux_os_config" {
-    for_each = each.value.linux_os_config == null ? [] : [0]
+    for_each = each.value.linux_os_config[*]
     content {
+
       dynamic "sysctl_config" {
-        for_each = each.value.linux_os_config.sysctl_config == null ? [] : [0]
+        for_each = linux_os_config.value.sysctl_config[*]
         content {
-          vm_max_map_count = each.value.linux_os_config.sysctl_config.vm_max_map_count
+          vm_max_map_count = sysctl_config.value.vm_max_map_count
         }
       }
     }
