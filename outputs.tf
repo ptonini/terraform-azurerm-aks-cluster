@@ -3,7 +3,7 @@ output "this" {
 }
 
 output "identities" {
-  value = module.identities[*].this
+  value = { for k, v in module.identities : k => v.this }
 }
 
 output "identity_helm_release_values" {
