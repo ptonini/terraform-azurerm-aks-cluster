@@ -133,22 +133,22 @@ variable "default_node_pool_subnet_id" {}
 
 variable "node_pools" {
   type = map(object({
-    default              = optional(bool, false)
-    enable_auto_scaling  = optional(bool, true)
-    node_count           = optional(number)
-    min_count            = optional(number, 1)
-    max_count            = optional(number)
-    vm_size              = optional(string, "standard_b2ms")
-    vnet_subnet_id       = optional(string)
-    orchestrator_version = optional(string)
-    class                = optional(string, "general")
-    node_taints          = optional(set(string))
+    default                     = optional(bool)
+    enable_auto_scaling         = optional(bool)
+    node_count                  = optional(number)
+    min_count                   = optional(number)
+    max_count                   = optional(number)
+    vm_size                     = optional(string)
+    vnet_subnet_id              = optional(string)
+    orchestrator_version        = optional(string)
+    node_labels                 = optional(map(string))
+    node_taints                 = optional(set(string))
+    temporary_name_for_rotation = optional(string, "temp")
     linux_os_config = optional(object({
       sysctl_config = optional(object({
         vm_max_map_count = optional(number)
       }))
     }))
-    temporary_name_for_rotation = optional(string, "temp")
   }))
   default = {}
 }

@@ -1,5 +1,4 @@
 locals {
-  subnet_ids   = toset(compact(concat([for k, v in var.node_pools : v.vnet_subnet_id], [var.default_node_pool_subnet_id])))
   default_pool = one([for k, v in var.node_pools : k if v["default"] == true])
 }
 
@@ -18,45 +17,50 @@ resource "azurerm_kubernetes_cluster" "this" {
   role_based_access_control_enabled   = var.role_based_access_control_enabled
   local_account_disabled              = var.local_account_disabled
 
-  azure_active_directory_role_based_access_control {
-    managed                = var.aad_rbac.managed
-    admin_group_object_ids = var.aad_rbac.admin_group_object_ids
-    azure_rbac_enabled     = var.aad_rbac.azure_rbac_enabled
-  }
-
-  network_profile {
-    outbound_type  = var.network_profile.outbound_type
-    network_plugin = var.network_profile.network_plugin
-    pod_cidr       = var.network_profile.pod_cidr
-    service_cidr   = var.network_profile.service_cidr
-    dns_service_ip = var.network_profile.dns_service_ip
-  }
-
-
-  default_node_pool {
-    name                 = local.default_pool
-    vnet_subnet_id       = coalesce(var.node_pools[local.default_pool].vnet_subnet_id, var.default_node_pool_subnet_id)
-    enable_auto_scaling  = var.node_pools[local.default_pool].enable_auto_scaling
-    node_count           = var.node_pools[local.default_pool].node_count
-    min_count            = var.node_pools[local.default_pool].enable_auto_scaling ? var.node_pools[local.default_pool].min_count : null
-    max_count            = var.node_pools[local.default_pool].enable_auto_scaling ? var.node_pools[local.default_pool].max_count : null
-    vm_size              = var.node_pools[local.default_pool].vm_size
-    orchestrator_version = var.node_pools[local.default_pool].orchestrator_version
-    node_taints          = var.node_pools[local.default_pool].node_taints
-    node_labels = {
-      nodePoolName  = local.default_pool
-      nodePoolClass = var.node_pools[local.default_pool].class
+  dynamic "network_profile" {
+    for_each = var.network_profile[*]
+    content {
+      outbound_type  = network_profile.value.outbound_type
+      network_plugin = network_profile.value.network_plugin
+      pod_cidr       = network_profile.value.pod_cidr
+      service_cidr   = network_profile.value.service_cidr
+      dns_service_ip = network_profile.value.dns_service_ip
     }
-    temporary_name_for_rotation = var.node_pools[local.default_pool].temporary_name_for_rotation
+  }
 
-    dynamic "linux_os_config" {
-      for_each = var.node_pools[local.default_pool].linux_os_config[*]
-      content {
+  dynamic "azure_active_directory_role_based_access_control" {
+    for_each = var.aad_rbac[*]
+    content {
+      managed                = azure_active_directory_role_based_access_control.value.managed
+      admin_group_object_ids = azure_active_directory_role_based_access_control.value.admin_group_object_ids
+      azure_rbac_enabled     = azure_active_directory_role_based_access_control.value.azure_rbac_enabled
+    }
+  }
 
-        dynamic "sysctl_config" {
-          for_each = linux_os_config.value.sysctl_config[*]
-          content {
-            vm_max_map_count = sysctl_config.value.vm_max_map_count
+  dynamic "default_node_pool" {
+    for_each = var.node_pools[local.default_pool][*]
+    content {
+      name                        = local.default_pool
+      vnet_subnet_id              = coalesce(default_node_pool.value.vnet_subnet_id, var.default_node_pool_subnet_id)
+      enable_auto_scaling         = default_node_pool.value.enable_auto_scaling
+      node_count                  = default_node_pool.value.node_count
+      min_count                   = default_node_pool.value.min_count
+      max_count                   = default_node_pool.value.max_count
+      vm_size                     = default_node_pool.value.vm_size
+      orchestrator_version        = default_node_pool.value.orchestrator_version
+      node_taints                 = default_node_pool.value.node_taints
+      node_labels                 = default_node_pool.value.node_labels
+      temporary_name_for_rotation = default_node_pool.value.temporary_name_for_rotation
+
+      dynamic "linux_os_config" {
+        for_each = default_node_pool.value.linux_os_config[*]
+        content {
+
+          dynamic "sysctl_config" {
+            for_each = linux_os_config.value.sysctl_config[*]
+            content {
+              vm_max_map_count = sysctl_config.value.vm_max_map_count
+            }
           }
         }
       }
@@ -72,10 +76,10 @@ resource "azurerm_kubernetes_cluster" "this" {
   }
 
   dynamic "identity" {
-    for_each = var.service_principal == null ? [0] : []
+    for_each = var.identity[*]
     content {
-      type         = var.identity.type
-      identity_ids = var.identity.identity_ids
+      type         = identity.value.type
+      identity_ids = identity.value.identity_ids
     }
   }
 
@@ -117,7 +121,7 @@ resource "azurerm_kubernetes_cluster" "this" {
 }
 
 resource "azurerm_role_assignment" "this" {
-  for_each             = length(azurerm_kubernetes_cluster.this.identity) == 1 ? local.subnet_ids : []
+  for_each             = var.identity == null ? [] : toset(compact(concat([for k, v in var.node_pools : v.vnet_subnet_id], [var.default_node_pool_subnet_id])))
   principal_id         = azurerm_kubernetes_cluster.this.identity[0].principal_id
   scope                = each.value
   role_definition_name = "Contributor"
@@ -130,15 +134,12 @@ resource "azurerm_kubernetes_cluster_node_pool" "this" {
   vnet_subnet_id        = coalesce(each.value.vnet_subnet_id, var.default_node_pool_subnet_id)
   node_count            = each.value.node_count
   enable_auto_scaling   = each.value.enable_auto_scaling
-  min_count             = each.value.enable_auto_scaling ? each.value.min_count : null
-  max_count             = each.value.enable_auto_scaling ? each.value.max_count : null
+  min_count             = each.value.min_count
+  max_count             = each.value.max_count
   vm_size               = each.value.vm_size
   orchestrator_version  = each.value.orchestrator_version
   node_taints           = each.value.node_taints
-  node_labels = {
-    nodePoolName  = each.key
-    nodePoolClass = each.value.class
-  }
+  node_labels           = each.value.node_labels
 
   dynamic "linux_os_config" {
     for_each = each.value.linux_os_config[*]
