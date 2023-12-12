@@ -37,11 +37,11 @@ variable "keda_enabled" {
 }
 
 variable "service_principal" {
-  default = null
   type = object({
     client_id     = string
     client_secret = string
   })
+  default = null
 }
 
 variable "identity" {
@@ -134,9 +134,9 @@ variable "default_node_pool_subnet_id" {}
 variable "node_pools" {
   type = map(object({
     default                     = optional(bool)
-    enable_auto_scaling         = optional(bool)
+    enable_auto_scaling         = optional(bool, true)
     node_count                  = optional(number)
-    min_count                   = optional(number)
+    min_count                   = optional(number, 1)
     max_count                   = optional(number)
     vm_size                     = optional(string)
     vnet_subnet_id              = optional(string)

@@ -44,8 +44,8 @@ resource "azurerm_kubernetes_cluster" "this" {
       vnet_subnet_id              = coalesce(default_node_pool.value.vnet_subnet_id, var.default_node_pool_subnet_id)
       enable_auto_scaling         = default_node_pool.value.enable_auto_scaling
       node_count                  = default_node_pool.value.node_count
-      min_count                   = default_node_pool.value.min_count
-      max_count                   = default_node_pool.value.max_count
+      min_count                   = default_node_pool.value.enable_auto_scaling ? default_node_pool.value.min_count : null
+      max_count                   = default_node_pool.value.enable_auto_scaling ? default_node_pool.value.max_count : null
       vm_size                     = default_node_pool.value.vm_size
       orchestrator_version        = default_node_pool.value.orchestrator_version
       node_taints                 = default_node_pool.value.node_taints
@@ -120,13 +120,6 @@ resource "azurerm_kubernetes_cluster" "this" {
   }
 }
 
-resource "azurerm_role_assignment" "this" {
-  for_each             = var.identity == null ? [] : toset(compact(concat([for k, v in var.node_pools : v.vnet_subnet_id], [var.default_node_pool_subnet_id])))
-  principal_id         = azurerm_kubernetes_cluster.this.identity[0].principal_id
-  scope                = each.value
-  role_definition_name = "Contributor"
-}
-
 resource "azurerm_kubernetes_cluster_node_pool" "this" {
   for_each              = { for k, v in var.node_pools : k => v if k != local.default_pool }
   kubernetes_cluster_id = azurerm_kubernetes_cluster.this.id
@@ -134,8 +127,8 @@ resource "azurerm_kubernetes_cluster_node_pool" "this" {
   vnet_subnet_id        = coalesce(each.value.vnet_subnet_id, var.default_node_pool_subnet_id)
   node_count            = each.value.node_count
   enable_auto_scaling   = each.value.enable_auto_scaling
-  min_count             = each.value.min_count
-  max_count             = each.value.max_count
+  min_count             = each.value.enable_auto_scaling ? each.value.min_count : null
+  max_count             = each.value.enable_auto_scaling ? each.value.max_count : null
   vm_size               = each.value.vm_size
   orchestrator_version  = each.value.orchestrator_version
   node_taints           = each.value.node_taints
@@ -153,6 +146,16 @@ resource "azurerm_kubernetes_cluster_node_pool" "this" {
       }
     }
   }
+}
+
+resource "azurerm_role_assignment" "this" {
+  for_each = var.identity == null ? {} : merge(
+    { default_node_pool = azurerm_kubernetes_cluster.this.default_node_pool[0].vnet_subnet_id },
+    { for k, v in azurerm_kubernetes_cluster_node_pool.this : k => v.vnet_subnet_id }
+  )
+  principal_id         = azurerm_kubernetes_cluster.this.identity[0].principal_id
+  scope                = each.value
+  role_definition_name = "Contributor"
 }
 
 module "identities" {
