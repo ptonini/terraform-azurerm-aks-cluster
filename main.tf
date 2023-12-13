@@ -149,10 +149,7 @@ resource "azurerm_kubernetes_cluster_node_pool" "this" {
 }
 
 resource "azurerm_role_assignment" "this" {
-  for_each = var.identity == null ? {} : merge(
-    { default_node_pool = azurerm_kubernetes_cluster.this.default_node_pool[0].vnet_subnet_id },
-    { for k, v in azurerm_kubernetes_cluster_node_pool.this : k => v.vnet_subnet_id }
-  )
+  for_each = var.identity == null ? [] : toset(concat(azurerm_kubernetes_cluster.this.default_node_pool[*].vnet_subnet_id, [ for k, v in azurerm_kubernetes_cluster_node_pool.this : v.vnet_subnet_id ]))
   principal_id         = azurerm_kubernetes_cluster.this.identity[0].principal_id
   scope                = each.value
   role_definition_name = "Contributor"
