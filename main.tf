@@ -27,6 +27,7 @@ resource "azurerm_kubernetes_cluster" "this" {
   private_cluster_public_fqdn_enabled = var.private_cluster_public_fqdn_enabled
   role_based_access_control_enabled   = var.role_based_access_control_enabled
   azure_active_directory_role_based_access_control {
+    azure_rbac_enabled = true
     managed                = var.aad_role_based_access_control_managed
     admin_group_object_ids = var.aad_role_based_access_control_admin_group_object_ids
   }
