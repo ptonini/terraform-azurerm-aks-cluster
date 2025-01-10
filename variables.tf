@@ -134,7 +134,7 @@ variable "default_node_pool_subnet_id" {}
 variable "node_pools" {
   type = map(object({
     default                     = optional(bool)
-    enable_auto_scaling         = optional(bool, true)
+    auto_scaling_enabled         = optional(bool, true)
     node_count                  = optional(number)
     min_count                   = optional(number, 1)
     max_count                   = optional(number)
