@@ -123,7 +123,6 @@ resource "azurerm_kubernetes_cluster_node_pool" "this" {
   name                  = each.key
   vnet_subnet_id        = coalesce(each.value.vnet_subnet_id, var.default_node_pool_subnet_id)
   node_count            = each.value.node_count
-  enable_auto_scaling   = each.value.enable_auto_scaling
   min_count             = each.value.enable_auto_scaling ? each.value.min_count : null
   max_count             = each.value.enable_auto_scaling ? each.value.max_count : null
   vm_size               = each.value.vm_size
