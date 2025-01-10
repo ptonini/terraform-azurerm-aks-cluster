@@ -120,7 +120,7 @@ variable "local_account_disabled" {
 
 variable "aad_rbac" {
   type = object({
-    managed                = optional(bool, true)
+    tenant_id             = optional(string)
     azure_rbac_enabled     = optional(bool, true)
     admin_group_object_ids = optional(set(string))
   })

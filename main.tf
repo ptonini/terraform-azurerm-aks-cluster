@@ -33,6 +33,7 @@ resource "azurerm_kubernetes_cluster" "this" {
     content {
       admin_group_object_ids = azure_active_directory_role_based_access_control.value.admin_group_object_ids
       azure_rbac_enabled     = azure_active_directory_role_based_access_control.value.azure_rbac_enabled
+      tenant_id              = azure_active_directory_role_based_access_control.value.tenant_id
     }
   }
 
@@ -145,7 +146,7 @@ resource "azurerm_kubernetes_cluster_node_pool" "this" {
 }
 
 resource "azurerm_role_assignment" "this" {
-  for_each = var.identity == null ? [] : toset(concat(azurerm_kubernetes_cluster.this.default_node_pool[*].vnet_subnet_id, [ for k, v in azurerm_kubernetes_cluster_node_pool.this : v.vnet_subnet_id ]))
+  for_each             = var.identity == null ? [] : toset(concat(azurerm_kubernetes_cluster.this.default_node_pool[*].vnet_subnet_id, [for k, v in azurerm_kubernetes_cluster_node_pool.this : v.vnet_subnet_id]))
   principal_id         = azurerm_kubernetes_cluster.this.identity[0].principal_id
   scope                = each.value
   role_definition_name = "Contributor"
