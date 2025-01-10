@@ -31,7 +31,6 @@ resource "azurerm_kubernetes_cluster" "this" {
   dynamic "azure_active_directory_role_based_access_control" {
     for_each = var.aad_rbac[*]
     content {
-      managed                = azure_active_directory_role_based_access_control.value.managed
       admin_group_object_ids = azure_active_directory_role_based_access_control.value.admin_group_object_ids
       azure_rbac_enabled     = azure_active_directory_role_based_access_control.value.azure_rbac_enabled
     }
@@ -42,13 +41,11 @@ resource "azurerm_kubernetes_cluster" "this" {
     content {
       name                        = local.default_pool
       vnet_subnet_id              = coalesce(default_node_pool.value.vnet_subnet_id, var.default_node_pool_subnet_id)
-      enable_auto_scaling         = default_node_pool.value.enable_auto_scaling
       node_count                  = default_node_pool.value.node_count
       min_count                   = default_node_pool.value.enable_auto_scaling ? default_node_pool.value.min_count : null
       max_count                   = default_node_pool.value.enable_auto_scaling ? default_node_pool.value.max_count : null
       vm_size                     = default_node_pool.value.vm_size
       orchestrator_version        = default_node_pool.value.orchestrator_version
-      node_taints                 = default_node_pool.value.node_taints
       node_labels                 = default_node_pool.value.node_labels
       temporary_name_for_rotation = default_node_pool.value.temporary_name_for_rotation
 
